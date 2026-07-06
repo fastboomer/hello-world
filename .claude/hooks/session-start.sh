@@ -18,3 +18,27 @@ else
 fi
 
 ln -sfn "$SKILL_REPO_DIR/skills/last30days" "$SKILL_LINK"
+
+# --- llm-council: single SKILL.md, no build step. Skip if already cloned. ---
+COUNCIL_DIR="$HOME/.claude/skills/llm-council"
+if [ ! -d "$COUNCIL_DIR/.git" ]; then
+  rm -rf "$COUNCIL_DIR"
+  git clone https://github.com/tenfoldmarc/llm-council-skill.git "$COUNCIL_DIR" || true
+fi
+
+# --- gstack: clone + build once; skip entirely once linked. ---
+GSTACK_DIR="$HOME/.claude/skills/gstack"
+GSTACK_MARKER="$HOME/.claude/skills/_gstack-command"
+
+if [ ! -d "$GSTACK_DIR/.git" ]; then
+  rm -rf "$GSTACK_DIR"
+  git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git "$GSTACK_DIR" || true
+fi
+
+if [ -d "$GSTACK_DIR/.git" ] && [ ! -d "$GSTACK_MARKER" ]; then
+  # This sandbox only has Chromium revision 1194 pre-installed and can't reach
+  # cdn.playwright.dev to fetch newer revisions, so pin playwright to the last
+  # release that targets 1194 - otherwise ./setup exits before linking skills.
+  sed -i 's/"playwright": "[^"]*"/"playwright": "1.56.1"/' "$GSTACK_DIR/package.json" || true
+  ( cd "$GSTACK_DIR" && ./setup ) || true
+fi
