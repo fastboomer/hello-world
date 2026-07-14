@@ -42,3 +42,21 @@ if [ -d "$GSTACK_DIR/.git" ] && [ ! -d "$GSTACK_MARKER" ]; then
   sed -i 's/"playwright": "[^"]*"/"playwright": "1.56.1"/' "$GSTACK_DIR/package.json" || true
   ( cd "$GSTACK_DIR" && ./setup ) || true
 fi
+
+# --- superpowers: clone once, symlink each of its skills individually. ---
+# The remote sandbox has no `/plugin` marketplace support, so install the
+# same skills the "superpowers@claude-plugins-official" plugin ships.
+SUPERPOWERS_DIR="$HOME/.claude/skill-sources/superpowers"
+if [ -d "$SUPERPOWERS_DIR/.git" ]; then
+  git -C "$SUPERPOWERS_DIR" pull --ff-only || true
+else
+  rm -rf "$SUPERPOWERS_DIR"
+  git clone --depth 1 https://github.com/obra/superpowers.git "$SUPERPOWERS_DIR" || true
+fi
+
+if [ -d "$SUPERPOWERS_DIR/skills" ]; then
+  for skill_dir in "$SUPERPOWERS_DIR"/skills/*/; do
+    skill_name="$(basename "$skill_dir")"
+    ln -sfn "$skill_dir" "$HOME/.claude/skills/$skill_name"
+  done
+fi
